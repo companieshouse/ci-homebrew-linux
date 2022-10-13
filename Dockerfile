@@ -1,5 +1,7 @@
 FROM amazonlinux:2
 
+SHELL ["/bin/bash", "-c"]
+
 ARG ENV_FILE="/root/.bashrc"
 
 ENV HOMEBREW_INSTALL_FROM_API=1
