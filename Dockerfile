@@ -1,13 +1,11 @@
-FROM amazonlinux:2
+FROM amazonlinux:2 as final
+FROM amazonlinux:2 as build
 
 SHELL ["/bin/bash", "-c"]
-
-ARG ENV_FILE="/root/.bashrc"
 
 ENV HOMEBREW_INSTALL_FROM_API=1
 ENV HOMEBREW_NO_ENV_HINTS=1
 ENV HOMEBREW_NO_ANALYTICS=1
-ENV BASH_ENV=${ENV_FILE}
 
 RUN amazon-linux-extras enable ruby3.0 && \
     yum -y groupinstall 'Development Tools' && \
@@ -23,10 +21,31 @@ RUN amazon-linux-extras enable ruby3.0 && \
 
 RUN /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-RUN eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" && \
-    brew cleanup --prune=all
+FROM final
 
-RUN echo -e "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)\n$(cat ${ENV_FILE})" > ${ENV_FILE}
+SHELL ["/bin/bash", "-c"]
+
+ARG ENV_FILE="/root/.bashrc"
+
+ENV HOMEBREW_INSTALL_FROM_API=1
+ENV HOMEBREW_NO_ENV_HINTS=1
+ENV HOMEBREW_NO_ANALYTICS=1
+ENV BASH_ENV=${ENV_FILE}
+
+RUN yum -y install \
+    gcc \
+    git \
+    gzip \
+    procps-ng \
+    tar && \
+    yum clean all
+
+RUN mkdir -p /home/linuxbrew > /dev/null 2>&1
+
+COPY --from=build /home/linuxbrew /home/linuxbrew
+
+RUN /home/linuxbrew/.linuxbrew/bin/brew shellenv >> $BASH_ENV && \
+    /home/linuxbrew/.linuxbrew/bin/brew cleanup --prune=all
 
 RUN rm -rf \
     /usr/share/doc \
