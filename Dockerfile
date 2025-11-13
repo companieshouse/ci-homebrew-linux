@@ -16,10 +16,18 @@ RUN amazon-linux-extras enable ruby3.0 && \
     ruby-irb \
     rubygem-rake \
     rubygem-json \
-    rubygems && \
+    rubygems \
+    curl \
+    tar \
+    gzip && \
     yum clean all
 
-RUN /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+RUN mkdir -p /home/linuxbrew/.linuxbrew && \
+    curl -L https://github.com/Homebrew/brew/tarball/HEAD \
+    | tar xz --strip 1 -C /home/linuxbrew/.linuxbrew
+
+RUN useradd -m -s /bin/bash linuxbrew && \
+    chown -R linuxbrew:linuxbrew /home/linuxbrew
 
 FROM final
 
@@ -44,8 +52,7 @@ RUN mkdir -p /home/linuxbrew > /dev/null 2>&1
 
 COPY --from=build /home/linuxbrew /home/linuxbrew
 
-RUN /home/linuxbrew/.linuxbrew/bin/brew shellenv >> $BASH_ENV && \
-    /home/linuxbrew/.linuxbrew/bin/brew cleanup --prune=all
+RUN echo 'export PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:$PATH"' >> "$BASH_ENV"
 
 RUN rm -rf \
     /usr/share/doc \
