@@ -1,7 +1,7 @@
-FROM amazonlinux:2 as final
-FROM amazonlinux:2 as build
+FROM amazonlinux:2 AS final
+FROM amazonlinux:2 AS build
 
-SHELL ["/bin/bash", "-c"]
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 ENV HOMEBREW_INSTALL_FROM_API=1
 ENV HOMEBREW_NO_ENV_HINTS=1
@@ -31,9 +31,9 @@ RUN useradd -m -s /bin/bash linuxbrew && \
 
 FROM final
 
-SHELL ["/bin/bash", "-c"]
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-ARG ENV_FILE="/root/.bashrc"
+ARG ENV_FILE="/home/linuxbrew/.bashrc"
 
 ENV HOMEBREW_INSTALL_FROM_API=1
 ENV HOMEBREW_NO_ENV_HINTS=1
@@ -48,15 +48,16 @@ RUN yum -y install \
     tar && \
     yum clean all
 
+RUN useradd -m -s /bin/bash linuxbrew
+
 RUN mkdir -p /home/linuxbrew > /dev/null 2>&1
 
-COPY --from=build /home/linuxbrew /home/linuxbrew
+COPY --from=build --chown=linuxbrew:linuxbrew /home/linuxbrew /home/linuxbrew
 
-RUN echo 'export PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:$PATH"' >> "$BASH_ENV"
+RUN echo 'export PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:$PATH"' >> "$BASH_ENV" && \
+    rm -rf /usr/share/doc /usr/share/locale /usr/share/man > /dev/null 2>&1
 
-RUN rm -rf \
-    /usr/share/doc \
-    /usr/share/locale \
-    /usr/share/man > /dev/null 2>&1
+USER linuxbrew
+WORKDIR /home/linuxbrew
 
 ENTRYPOINT ["/bin/bash", "-c"]
